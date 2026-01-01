@@ -29,10 +29,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   @override
   void initState() {
     super.initState();
-    _adoptionService = AdoptionService(
-      _petService,
-      NotificationService(),
-    );
+    _adoptionService = AdoptionService();
     _loadPet();
   }
 

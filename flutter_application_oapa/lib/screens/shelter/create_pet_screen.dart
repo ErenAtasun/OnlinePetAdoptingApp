@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../models/pet.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/pet_service.dart';
@@ -21,11 +23,13 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
   final _cityController = TextEditingController();
   final _healthStatusController = TextEditingController();
   final PetService _petService = PetService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   PetSpecies _selectedSpecies = PetSpecies.dog;
   PetSize _selectedSize = PetSize.medium;
   PetStatus _selectedStatus = PetStatus.available;
   bool _isLoading = false;
+  List<XFile> _selectedImages = [];
 
   @override
   void initState() {
@@ -81,7 +85,9 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
         description: _descriptionController.text.trim(),
         status: _selectedStatus,
         city: _cityController.text.trim(),
-        imageUrls: widget.pet?.imageUrls ?? [],
+        imageUrls: widget.pet != null && _selectedImages.isEmpty
+            ? widget.pet!.imageUrls
+            : _selectedImages.map((img) => img.path).toList(),
         healthStatus: _healthStatusController.text.trim().isEmpty
             ? null
             : _healthStatusController.text.trim(),
@@ -125,6 +131,48 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
     }
   }
 
+  Future<void> _selectImages() async {
+    try {
+      if (_selectedImages.length >= 5) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You can add up to 5 photos'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      final List<XFile> images = await _imagePicker.pickMultiImage();
+      
+      if (images.isNotEmpty) {
+        setState(() {
+          final remainingSlots = 5 - _selectedImages.length;
+          if (images.length > remainingSlots) {
+            _selectedImages.addAll(images.take(remainingSlots));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Only first $remainingSlots photos were added'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          } else {
+            _selectedImages.addAll(images);
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting images: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,6 +186,90 @@ class _CreatePetScreenState extends State<CreatePetScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Pet Images Section
+              Text(
+                'Pet Photos',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Add photos of the pet (up to 5)',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedImages.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == _selectedImages.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: GestureDetector(
+                          onTap: _selectImages,
+                          child: Container(
+                            width: 120,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate, size: 40, color: Colors.grey[400]),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Add Photo',
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(_selectedImages[index].path),
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedImages.removeAt(index);
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, size: 16, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(

@@ -4,11 +4,17 @@ import '../services/pet_service.dart';
 import '../services/notification_service.dart';
 
 class AdoptionService {
-  final List<AdoptionRequest> _requests = [];
-  final PetService _petService;
-  final NotificationService _notificationService;
+  // Singleton instance
+  static final AdoptionService _instance = AdoptionService._internal();
+  factory AdoptionService() => _instance;
+  AdoptionService._internal() {
+    _petService = PetService();
+    _notificationService = NotificationService();
+  }
 
-  AdoptionService(this._petService, this._notificationService);
+  final List<AdoptionRequest> _requests = [];
+  late final PetService _petService;
+  late final NotificationService _notificationService;
 
   Future<AdoptionRequest> submitApplication({
     required String petId,

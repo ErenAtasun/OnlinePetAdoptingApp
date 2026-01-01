@@ -1,6 +1,11 @@
 import '../models/notification.dart';
 
 class NotificationService {
+  // Singleton instance
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
   final List<AppNotification> _notifications = [];
 
   Future<AppNotification> createNotification({

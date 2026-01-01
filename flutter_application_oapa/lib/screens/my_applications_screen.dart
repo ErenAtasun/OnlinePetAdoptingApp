@@ -23,10 +23,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   @override
   void initState() {
     super.initState();
-    _adoptionService = AdoptionService(
-      _petService,
-      NotificationService(),
-    );
+    _adoptionService = AdoptionService();
     _loadApplications();
   }
 

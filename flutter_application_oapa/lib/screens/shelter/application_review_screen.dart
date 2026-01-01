@@ -23,10 +23,7 @@ class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _adoptionService = AdoptionService(
-      _petService,
-      NotificationService(),
-    );
+    _adoptionService = AdoptionService();
     _loadApplications();
   }
 

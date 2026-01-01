@@ -3,15 +3,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 
 class AuthService {
+  // Singleton instance
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   static const String _userKey = 'current_user';
   static const String _isLoggedInKey = 'is_logged_in';
 
   // In-memory storage for users (in real app, this would be API calls)
   final Map<String, String> _users = {}; // email -> password
   final Map<String, User> _userData = {}; // email -> User
+  bool _initialized = false;
 
   // Initialize with some demo data
   void initializeDemoData() {
+    if (_initialized) return; // Already initialized
+    _initialized = true;
     // Demo admin user
     final admin = User(
       id: 'admin1',

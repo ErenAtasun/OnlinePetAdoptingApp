@@ -15,6 +15,7 @@ import 'screens/pet_detail_screen.dart';
 import 'screens/adoption_form_screen.dart';
 import 'screens/my_applications_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/edit_profile_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/shelter/shelter_dashboard_screen.dart';
 import 'screens/shelter/create_pet_screen.dart';
@@ -69,6 +70,7 @@ class MyApp extends StatelessWidget {
         },
         AppConstants.myApplicationsRoute: (context) => const MyApplicationsScreen(),
         AppConstants.profileRoute: (context) => const ProfileScreen(),
+        AppConstants.editProfileRoute: (context) => const EditProfileScreen(),
         AppConstants.notificationsRoute: (context) => const NotificationsScreen(),
         AppConstants.shelterDashboardRoute: (context) => const ShelterDashboardScreen(),
         AppConstants.createPetRoute: (context) => const CreatePetScreen(),

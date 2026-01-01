@@ -20,6 +20,7 @@ class AppConstants {
   static const String editPetRoute = '/edit-pet';
   static const String applicationReviewRoute = '/application-review';
   static const String profileRoute = '/profile';
+  static const String editProfileRoute = '/edit-profile';
   static const String notificationsRoute = '/notifications';
   static const String adminDashboardRoute = '/admin-dashboard';
 }

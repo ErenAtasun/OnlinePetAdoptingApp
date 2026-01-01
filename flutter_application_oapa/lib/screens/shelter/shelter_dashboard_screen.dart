@@ -27,10 +27,7 @@ class _ShelterDashboardScreenState extends State<ShelterDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _adoptionService = AdoptionService(
-      _petService,
-      NotificationService(),
-    );
+    _adoptionService = AdoptionService();
     _loadData();
   }
 
