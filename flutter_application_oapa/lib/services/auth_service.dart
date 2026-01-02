@@ -15,6 +15,17 @@ class AuthService {
   final Map<String, String> _users = {}; // email -> password
   final Map<String, User> _userData = {}; // email -> User
   bool _initialized = false;
+  final RegExp _emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
+  final RegExp _phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+
+  void reset({bool seedDemoData = false}) {
+    _users.clear();
+    _userData.clear();
+    _initialized = false;
+    if (seedDemoData) {
+      initializeDemoData();
+    }
+  }
 
   // Initialize with some demo data
   void initializeDemoData() {
@@ -50,33 +61,47 @@ class AuthService {
     String? phoneNumber,
     UserRole role = UserRole.adopter,
   }) async {
-    if (_users.containsKey(email)) {
+    _validateRegistrationInput(name, email, password, phoneNumber);
+
+    final normalizedEmail = email.trim();
+    final normalizedName = name.trim();
+    final normalizedPhone = phoneNumber?.trim();
+
+    if (_users.containsKey(normalizedEmail)) {
       return false; // User already exists
     }
 
     final user = User(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      email: email,
-      phoneNumber: phoneNumber,
+      name: normalizedName,
+      email: normalizedEmail,
+      phoneNumber: normalizedPhone,
       role: role,
       createdAt: DateTime.now(),
     );
 
-    _users[email] = password;
-    _userData[email] = user;
+    _users[normalizedEmail] = password;
+    _userData[normalizedEmail] = user;
     return true;
   }
 
   Future<User?> login(String email, String password) async {
-    if (_users[email] == password) {
-      final user = _userData[email];
-      if (user != null) {
-        await _saveUser(user);
-        return user;
-      }
+    _validateEmail(email);
+    _validatePassword(password);
+
+    final normalizedEmail = email.trim();
+    final storedPassword = _users[normalizedEmail];
+    if (storedPassword == null || storedPassword != password) {
+      throw Exception('Invalid credentials');
     }
-    return null;
+
+    final user = _userData[normalizedEmail];
+    if (user != null) {
+      await _saveUser(user);
+      return user;
+    }
+
+    throw Exception('User record not found');
   }
 
   Future<void> logout() async {
@@ -110,5 +135,34 @@ class AuthService {
     _userData[user.email] = user;
     await _saveUser(user);
   }
-}
 
+  void _validateRegistrationInput(
+    String name,
+    String email,
+    String password,
+    String? phoneNumber,
+  ) {
+    if (name.trim().isEmpty) {
+      throw const FormatException('Name is required');
+    }
+    _validateEmail(email);
+    _validatePassword(password);
+    if (phoneNumber != null && phoneNumber.trim().isNotEmpty) {
+      if (!_phoneRegex.hasMatch(phoneNumber.trim())) {
+        throw const FormatException('Invalid phone number');
+      }
+    }
+  }
+
+  void _validateEmail(String email) {
+    if (email.trim().isEmpty || !_emailRegex.hasMatch(email.trim())) {
+      throw const FormatException('Invalid email address');
+    }
+  }
+
+  void _validatePassword(String password) {
+    if (password.isEmpty || password.length < 6) {
+      throw const FormatException('Password must be at least 6 characters');
+    }
+  }
+}

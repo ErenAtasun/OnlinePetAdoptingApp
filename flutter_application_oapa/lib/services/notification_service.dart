@@ -8,6 +8,12 @@ class NotificationService {
 
   final List<AppNotification> _notifications = [];
 
+  List<AppNotification> get notifications => List.unmodifiable(_notifications);
+
+  void reset() {
+    _notifications.clear();
+  }
+
   Future<AppNotification> createNotification({
     required String userId,
     required String message,

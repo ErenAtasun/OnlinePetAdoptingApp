@@ -13,8 +13,16 @@ class AdoptionService {
   }
 
   final List<AdoptionRequest> _requests = [];
+  int _idCounter = 0;
   late final PetService _petService;
   late final NotificationService _notificationService;
+
+  List<AdoptionRequest> get requests => List.unmodifiable(_requests);
+
+  void reset() {
+    _requests.clear();
+    _idCounter = 0;
+  }
 
   Future<AdoptionRequest> submitApplication({
     required String petId,
@@ -24,13 +32,27 @@ class AdoptionService {
     String? userPhoneNumber,
     required String message,
   }) async {
+    if (message.trim().isEmpty) {
+      throw const FormatException('Application message is required');
+    }
+
     final pet = await _petService.getPetById(petId);
     if (pet == null) {
-      throw Exception('Pet not found');
+      throw StateError('Pet not found');
+    }
+
+    final hasExistingRequest =
+        _requests.any((r) => r.petId == petId && r.userId == userId);
+    if (hasExistingRequest) {
+      throw StateError('User has already applied for this pet');
+    }
+
+    if (pet.status == PetStatus.adopted) {
+      throw StateError('Pet is not available for adoption');
     }
 
     final request = AdoptionRequest(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: '${DateTime.now().millisecondsSinceEpoch}_${_idCounter++}',
       petId: petId,
       petName: pet.name,
       petImageUrl: pet.imageUrls.isNotEmpty ? pet.imageUrls.first : null,
@@ -45,8 +67,10 @@ class AdoptionService {
 
     _requests.add(request);
 
-    // Update pet status
-    await _petService.updatePet(pet.copyWith(status: PetStatus.pending));
+    // Update pet status if still available
+    if (pet.status == PetStatus.available) {
+      await _petService.updatePet(pet.copyWith(status: PetStatus.pending));
+    }
 
     // Notify shelter (in real app, this would be async)
     await _notificationService.createNotification(
@@ -78,8 +102,27 @@ class AdoptionService {
       ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
   }
 
-  Future<AdoptionRequest> approveApplication(String requestId, String petId) async {
+  Future<AdoptionRequest> approveApplication({
+    required String requestId,
+    required String petId,
+    required String shelterId,
+  }) async {
     final request = _requests.firstWhere((r) => r.id == requestId);
+    if (request.petId != petId) {
+      throw StateError('Application does not belong to this pet');
+    }
+    if (request.status != AdoptionStatus.pending) {
+      throw StateError('Only pending applications can be approved');
+    }
+
+    final pet = await _petService.getPetById(petId);
+    if (pet == null) {
+      throw StateError('Pet not found');
+    }
+    if (pet.shelterId != null && pet.shelterId != shelterId) {
+      throw StateError('Unauthorized shelter action');
+    }
+
     final updatedRequest = request.copyWith(
       status: AdoptionStatus.approved,
       reviewedAt: DateTime.now(),
@@ -88,11 +131,7 @@ class AdoptionService {
     final index = _requests.indexWhere((r) => r.id == requestId);
     _requests[index] = updatedRequest;
 
-    // Update pet status
-    final pet = await _petService.getPetById(petId);
-    if (pet != null) {
-      await _petService.updatePet(pet.copyWith(status: PetStatus.adopted));
-    }
+    await _petService.updatePet(pet.copyWith(status: PetStatus.adopted));
 
     // Reject other pending applications for the same pet
     for (var req in _requests) {
@@ -125,11 +164,24 @@ class AdoptionService {
     return updatedRequest;
   }
 
-  Future<AdoptionRequest> rejectApplication(
-    String requestId,
+  Future<AdoptionRequest> rejectApplication({
+    required String requestId,
+    required String shelterId,
     String? reason,
-  ) async {
+  }) async {
     final request = _requests.firstWhere((r) => r.id == requestId);
+    if (request.status != AdoptionStatus.pending) {
+      throw StateError('Only pending applications can be rejected');
+    }
+
+    final pet = await _petService.getPetById(request.petId);
+    if (pet == null) {
+      throw StateError('Pet not found');
+    }
+    if (pet.shelterId != null && pet.shelterId != shelterId) {
+      throw StateError('Unauthorized shelter action');
+    }
+
     final updatedRequest = request.copyWith(
       status: AdoptionStatus.rejected,
       reviewedAt: DateTime.now(),
@@ -143,10 +195,7 @@ class AdoptionService {
     final petApplications = await getPetApplications(request.petId);
     final hasPending = petApplications.any((r) => r.status == AdoptionStatus.pending);
     if (!hasPending) {
-      final pet = await _petService.getPetById(request.petId);
-      if (pet != null) {
-        await _petService.updatePet(pet.copyWith(status: PetStatus.available));
-      }
+      await _petService.updatePet(pet.copyWith(status: PetStatus.available));
     }
 
     // Notify user

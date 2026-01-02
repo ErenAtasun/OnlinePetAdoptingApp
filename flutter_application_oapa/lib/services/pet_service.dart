@@ -10,6 +10,16 @@ class PetService {
   final List<Pet> _pets = [];
   bool _initialized = false;
 
+  List<Pet> get allPets => List.unmodifiable(_pets);
+
+  void reset({bool seedDemoData = false}) {
+    _pets.clear();
+    _initialized = false;
+    if (seedDemoData) {
+      initializeDemoData();
+    }
+  }
+
   void initializeDemoData() {
     if (_initialized) return; // Already initialized
     _initialized = true;
@@ -125,7 +135,7 @@ class PetService {
         description:
             'Bella is a beautiful and affectionate cat. She loves attention and enjoys being petted. Indoor cat preferred.',
         status: PetStatus.available,
-        city: 'Antalya',
+        city: 'Istanbul',
         imageUrls: [],
         healthStatus: 'Vaccinated, spayed, healthy',
         shelterId: 'shelter1',

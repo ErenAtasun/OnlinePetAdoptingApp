@@ -46,6 +46,15 @@ class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
   }
 
   Future<void> _approveApplication(AdoptionRequest application) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login as shelter to approve applications')),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -67,7 +76,11 @@ class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
     if (confirmed != true) return;
 
     try {
-      await _adoptionService.approveApplication(application.id, application.petId);
+      await _adoptionService.approveApplication(
+        requestId: application.id,
+        petId: application.petId,
+        shelterId: user.id,
+      );
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,6 +103,15 @@ class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
   }
 
   Future<void> _rejectApplication(AdoptionRequest application) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login as shelter to reject applications')),
+      );
+      return;
+    }
+
     final reasonController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
@@ -132,8 +154,9 @@ class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
 
     try {
       await _adoptionService.rejectApplication(
-        application.id,
-        reasonController.text.trim().isEmpty ? null : reasonController.text.trim(),
+        requestId: application.id,
+        shelterId: user.id,
+        reason: reasonController.text.trim().isEmpty ? null : reasonController.text.trim(),
       );
       if (!mounted) return;
 
